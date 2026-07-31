@@ -1,7 +1,22 @@
 # Sentinel Project
 
-This repository is the working home for my Sentinel project with Perplexity (ChatGPT).
-It will store:
-- Discussion notes
-- Project structure and plans
-- Code and configuration as the project grows
+This is the working home for my Sentinel project.
+
+The goal here is to keep everything in one place without turning it into a junk drawer with a fancy logo.
+This repo will hold:
+- Notes from project discussions
+- Task lists and next steps
+- Early code and config structure
+- Random good ideas that should not be trusted unless we write them down
+
+## Current structure
+- `notes/` – project notes, session logs, and task tracking
+- `src/` – source code as the project grows
+- `config/` – settings, hardware notes, and app config ideas
+
+## Tone of the project
+Informational, but still human.
+Clear enough to be useful, relaxed enough that reading it does not feel like homework.
+
+## Current status
+Still early, but at least now the mess is organized.
