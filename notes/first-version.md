@@ -19,3 +19,13 @@ The first version of Sentinel should be small, useful, and realistic enough that
 
 ## Working standard
 If a feature does not help version one become real, it can wait.
+
+## First guess
+Right now, Sentinel looks like it may become a practical tool that mixes technical field knowledge with software organization.
+
+That could mean:
+- A technician-friendly dashboard
+- A structured hardware and configuration tracking tool
+- A small automation helper for setup, notes, or device-related workflows
+
+This is still a draft, but at least now the project has a pulse.
