@@ -20,3 +20,25 @@ Clear enough to be useful, relaxed enough that reading it does not feel like hom
 
 ## Current status
 Still early, but at least now the mess is organized.
+
+## Folder layout
+
+```text
+Sentinel-/
+├── README.md
+├── notes/
+│   ├── README.md
+│   ├── session-2026-07-31.md
+│   └── tasks.md
+├── src/
+│   ├── README.md
+│   ├── client/
+│   │   └── README.md
+│   └── server/
+│       └── README.md
+└── config/
+    ├── README.md
+    ├── app/
+    │   └── README.md
+    └── hardware/
+        └── README.md
