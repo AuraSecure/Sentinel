@@ -1,0 +1,16 @@
+# Session – 2026‑07‑31
+
+## Summary
+- Set up the Sentinel project repository.
+- Created a notes folder and structure for discussions.
+- Confirmed workflow for interacting with ChatGPT and storing outputs.
+
+## Key decisions
+- Use GitHub as the physical home for project files and notes.
+- Keep one repo for this project, with folders for notes, tasks, and code.
+- Log each major chat session in its own `session-YYYY-MM-DD.md` file.
+
+## Next actions
+- Create a `notes/tasks.md` file for ongoing to‑dos.
+- Define initial project goals and scope in the main `README.md`.
+- Plan the folder layout for future code (e.g., `/src`, `/config`).
