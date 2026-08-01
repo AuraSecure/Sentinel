@@ -1,0 +1,31 @@
+# Claude Code local settings
+.claude/settings.local.json
+
+# Editors
+.vscode/
+.idea/
+
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# PlatformIO / Arduino firmware builds
+.pio/
+build/
+*.bin
+*.elf
+*.map
+
+# Python (simulation/test harness)
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Node (if a web client is added later)
+node_modules/
+dist/
+
+# Env / secrets
+.env
+.env.local
