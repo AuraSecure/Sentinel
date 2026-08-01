@@ -142,6 +142,16 @@ Each state (`idle`, `pre-event baseline`, `candidate event`, `verification windo
 - Notes/docs tone should stay light, human, and slightly informal — not corporate boilerplate. (This file tries to match that; keep doing so in future notes.)
 - Technically capable, comfortable mixing hardware and software thinking — no need to over-explain basics, but do surface tradeoffs.
 
+## Open questions / assumptions to confirm
+
+These aren't settled yet — they're gaps in the plan above that should get explicit answers (or explicit "yes, assume this for now") before they get quietly baked into the firmware.
+
+- **Dev/test toolchain.** "Software-first" implies simulating sensor input before touching real hardware, but nothing pins down where that lives. Likely approach: prototype the state machine + scoring logic in Python first (fast iteration, easy to plot/inspect against synthetic scenarios), then port validated logic to the ESP32-S3 firmware. Firmware language/framework (Arduino, PlatformIO, ESP-IDF) is also still undecided.
+- **What "privacy-first" means in practice.** The mic is the sensor most likely to raise privacy concerns. Working assumption: audio is processed for features only (impulse/energy) and never recorded or stored as raw audio, with no cloud upload. This is an assumption based on framing so far, not a confirmed requirement — should be confirmed explicitly.
+- **Alert destination.** The alert layer plan (serial log → LED/buzzer → later network/app) doesn't say who receives a confirmed-fall alert — you, a caregiver's phone, a monitoring service? This shapes what the alert layer eventually needs to do.
+- **Occupant/environment assumptions.** LD2410C radar will pick up pets and can't inherently identify "who" triggered an event. Current working assumption: single adult occupant, single room. Worth stating explicitly rather than discovering it as a limitation later.
+- **False positive vs. missed-fall tolerance.** No stated target yet (e.g., "better to over-alert than miss a real fall"). This directly drives how aggressive threshold/scoring logic should be, so it's worth a short explicit philosophy statement once decided.
+
 ## Recommended next steps
 
 1. Resolve the accidental nested-clone folder (`Sentinel-/Sentinel-/`) and the garbled `config/README.md` artifact so git status is clean and matches GitHub.
@@ -150,3 +160,4 @@ Each state (`idle`, `pre-event baseline`, `candidate event`, `verification windo
 4. Build the signal parser and fusion logic described above.
 5. Build a small set of replayable test scenarios (normal motion, sit-down, drop, fall, recovery, non-recovery) to validate logic before hardware arrives.
 6. Keep `config/hardware/` and `config/app/` as the home for threshold values and settings once those exist, per the structure already defined in their README files.
+7. Get explicit answers to the open questions/assumptions above — especially the toolchain choice, since it determines how step 2-5 above actually get built.
