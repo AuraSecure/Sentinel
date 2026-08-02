@@ -35,6 +35,6 @@ pytest
 
 ## Status
 
-Core detection logic is in place and passing synthetic tests: sensor event contracts (`events.py`), tunable thresholds (`thresholds.py`), the radar/audio clue parser (`parser.py`), fusion scoring (`fusion.py`), and the fall state machine (`state_machine.py`). `tests/scenarios.py` covers normal motion, sitting down, object drop, and fall with/without recovery.
+Core detection logic is in place and passing tests (19/19): sensor event contracts (`events.py`), tunable thresholds (`thresholds.py`), the radar/audio clue parser (`parser.py`), fusion scoring (`fusion.py`), the fall state machine (`state_machine.py`), and now real byte-level sensor decoding: `radar_protocol.py` decodes the actual LD2410C UART data-frame protocol (header/length/payload/footer, stream buffering, resync on noise), and `audio_pcm.py` decodes raw INMP441 I2S PCM into peak/RMS features. `tests/scenarios.py` covers normal motion, sitting down, object drop, and fall with/without recovery.
 
-Not done yet: real LD2410C/INMP441 byte-level parsing (everything above runs on mocked frame data, not real sensor bytes), threshold tuning against real hardware, and the firmware port. See `notes/knowledge-base.md` for the full picture and next steps.
+Not done yet: neither decoder has seen real hardware. The LD2410C checksum algorithm isn't validated (presence-checked only), and the INMP441 bit-shift used to unpack samples is a documented best guess -- both are called out explicitly in their module docstrings as needing confirmation against real captured logs. Threshold tuning and the firmware port are also still ahead. See `notes/knowledge-base.md` for the full picture and next steps.

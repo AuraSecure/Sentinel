@@ -2,7 +2,7 @@
 
 This is the single source of truth for anyone (human or AI) picking up Sentinel from here. Read this before touching code or notes. If something here conflicts with an older note file, this file wins — it's the corrected, current picture.
 
-Last updated: 2026-08-01 (detector logic pass)
+Last updated: 2026-08-01 (sensor protocol decoding pass)
 
 ## What Sentinel is, right now
 
@@ -51,7 +51,11 @@ Root:
 - `detector/parser.py` — `RadarClueParser` / `AudioClueParser`, turning raw frames into simplified clues (motion spike, stillness, presence, audio impulse)
 - `detector/fusion.py` — `score_tick`, the weighted-evidence-per-tick logic described below
 - `detector/state_machine.py` — `FallStateMachine`, implementing the full `idle → baseline → candidate → verification → confirmed/dismissed → reset` cycle
-- `tests/scenarios.py` + `tests/test_fall_scenarios.py` — 5 synthetic scenarios (normal motion, sitting down, object drop, fall/non-recovery, fall/recovery) covering the 6 named test cases, all passing against the logic above
+- `detector/radar_protocol.py` — module 1 (sensor drivers): real LD2410C UART byte decoder (`RadarFrameStreamDecoder`), handling partial frames, noise, and resync against the actual header/length/footer protocol
+- `detector/audio_pcm.py` — module 1 (sensor drivers): real INMP441 I2S PCM decoder + peak/RMS feature extraction
+- `tests/scenarios.py` + `tests/test_fall_scenarios.py` — 5 synthetic scenarios (normal motion, sitting down, object drop, fall/non-recovery, fall/recovery) covering the 6 named test cases
+- `tests/test_radar_protocol.py`, `tests/test_audio_pcm.py` — decoder-level tests (valid frames, split/partial reads, garbage resync, silence/impulse audio)
+- 19/19 tests passing as of this pass
 
 `src/`:
 - `client/README.md`, `server/README.md` — still placeholder, no code yet
@@ -59,7 +63,7 @@ Root:
 `config/`:
 - `README.md`, `config/hardware/README.md`, `config/app/README.md` — still placeholder, no actual config yet
 
-**Bottom line:** the core detection logic described in this document — state machine, parser, fusion scoring — is implemented and passing a first round of synthetic scenario tests. It has **never seen real sensor data**; every threshold/weight in `thresholds.py` is a plausible starting guess, not a tuned value. `client/`, `server/`, `config/`, and the actual ESP32-S3 firmware port are still untouched.
+**Bottom line:** the core detection logic described in this document — state machine, parser, fusion scoring, and now real byte-level decoding for both sensors' actual wire protocols — is implemented and passing a full round of tests (19/19). It has **never seen real sensor data**: every threshold/weight in `thresholds.py` is a plausible starting guess, the LD2410C checksum algorithm isn't validated (only checked for presence), and the INMP441 bit-shift used to unpack 24-bit samples from the 32-bit I2S word is a documented guess (real-world reports disagree between implementations). `client/`, `server/`, `config/`, and the actual ESP32-S3 firmware port are still untouched.
 
 ## Known repo issue: accidental nested clone — resolved
 
@@ -162,9 +166,10 @@ These aren't settled yet — they're gaps in the plan above that should get expl
 2. ~~Sensor input contract for LD2410C + INMP441~~ — done (`events.py`, mocked data only).
 3. ~~Fall-detection state machine skeleton with weighted scoring~~ — done (`state_machine.py`).
 4. ~~Signal parser and fusion logic~~ — done (`parser.py`, `fusion.py`).
-5. ~~Replayable synthetic test scenarios~~ — done (`tests/scenarios.py`, 5 scenarios, 6 test cases, all passing).
-6. **Commit the new `src/detector/` work** — it's currently untracked in git, nothing above is saved to history yet.
-7. Add scenarios that stress the edges of the current thresholds (borderline energy values, an impulse just outside the alignment window, back-to-back candidate events) to sanity-check the weights aren't accidentally brittle.
-8. Get explicit answers to the remaining open questions below (alert destination, false-positive vs. missed-fall philosophy, occupant assumptions) before they get quietly baked further into scoring.
-9. Once satisfied with synthetic coverage, start on real LD2410C/INMP441 byte-level parsing (replacing the mocked `RadarFrame`/`AudioFrame` construction with actual UART/I2S decoding) — this is the bridge from `src/detector/` to real firmware.
-10. Keep `config/hardware/` and `config/app/` as the home for threshold values and settings once the firmware port starts, per the structure already defined in their README files.
+5. ~~Replayable synthetic test scenarios~~ — done (`tests/scenarios.py`, 5 scenarios, 6 test cases).
+6. ~~Commit the new `src/detector/` work~~ — done, pushed to `origin/main`.
+7. ~~Real LD2410C/INMP441 byte-level decoding~~ — done (`radar_protocol.py`, `audio_pcm.py`), but both carry explicitly-flagged unconfirmed assumptions (LD2410C checksum algorithm, INMP441 bit shift) that need real hardware to settle.
+8. Add scenarios that stress the edges of the current thresholds (borderline energy values, an impulse just outside the alignment window, back-to-back candidate events) to sanity-check the weights aren't accidentally brittle.
+9. Get explicit answers to the remaining open questions below (alert destination, false-positive vs. missed-fall philosophy, occupant assumptions) before they get quietly baked further into scoring.
+10. Wire `radar_protocol.py` / `audio_pcm.py` into an actual read loop once the ESP32-S3 + LD2410C + INMP441 hardware is assembled, and use it to settle the two unconfirmed assumptions from step 7 against real captured frames.
+11. Keep `config/hardware/` and `config/app/` as the home for threshold values and settings once the firmware port starts, per the structure already defined in their README files.
