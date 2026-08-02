@@ -2,7 +2,7 @@
 
 This is the single source of truth for anyone (human or AI) picking up Sentinel from here. Read this before touching code or notes. If something here conflicts with an older note file, this file wins — it's the corrected, current picture.
 
-Last updated: 2026-08-01
+Last updated: 2026-08-01 (detector logic pass)
 
 ## What Sentinel is, right now
 
@@ -32,8 +32,6 @@ This lets iteration happen fast (talk through scenarios, adjust logic, rerun) wi
 
 ## Actual repo progress (verified against the real filesystem, 2026-08-01)
 
-Be precise about this with anyone continuing the work: **almost everything built so far is structure and documentation, not application code.** No firmware, no parser, no state machine, no scoring logic exists yet.
-
 Root:
 - `README.md` — project description + folder layout
 
@@ -47,19 +45,25 @@ Root:
 - `first-version.md` — draft framing for "what should v1 do"
 - `knowledge-base.md` — this file
 
+`src/detector/` — Python sandbox, **real application code now**, per the software-first plan:
+- `detector/events.py` — `RadarFrame` / `AudioFrame` dataclasses mirroring the real LD2410C engineering-mode fields and an INMP441 feature window (peak/RMS, never raw PCM)
+- `detector/thresholds.py` — every tunable sensitivity value in one `Thresholds` dataclass
+- `detector/parser.py` — `RadarClueParser` / `AudioClueParser`, turning raw frames into simplified clues (motion spike, stillness, presence, audio impulse)
+- `detector/fusion.py` — `score_tick`, the weighted-evidence-per-tick logic described below
+- `detector/state_machine.py` — `FallStateMachine`, implementing the full `idle → baseline → candidate → verification → confirmed/dismissed → reset` cycle
+- `tests/scenarios.py` + `tests/test_fall_scenarios.py` — 5 synthetic scenarios (normal motion, sitting down, object drop, fall/non-recovery, fall/recovery) covering the 6 named test cases, all passing against the logic above
+
 `src/`:
-- `README.md`, `src/client/README.md`, `src/server/README.md` — all placeholder folder-purpose docs, no code yet
+- `client/README.md`, `server/README.md` — still placeholder, no code yet
 
 `config/`:
-- `README.md`, `config/hardware/README.md`, `config/app/README.md` — all placeholder folder-purpose docs, no actual config yet
+- `README.md`, `config/hardware/README.md`, `config/app/README.md` — still placeholder, no actual config yet
 
-**Bottom line:** repo skeleton is built, notes system works, hardware baseline is chosen, direction is now narrowed to fall detection — but the actual fall-detection firmware, parsing, and math described below is still 100% planning, not code. That's the real starting line.
+**Bottom line:** the core detection logic described in this document — state machine, parser, fusion scoring — is implemented and passing a first round of synthetic scenario tests. It has **never seen real sensor data**; every threshold/weight in `thresholds.py` is a plausible starting guess, not a tuned value. `client/`, `server/`, `config/`, and the actual ESP32-S3 firmware port are still untouched.
 
-## Known repo issue: accidental nested clone
+## Known repo issue: accidental nested clone — resolved
 
-There is a `Sentinel-/Sentinel-/` folder inside the working repo that is itself a full independent git repository (own `.git`, own copy of README/notes/config/src). This almost certainly happened from running `git clone` *inside* the already-cloned working directory instead of somewhere separate — confirmed suspicion, not yet cleaned up. There's also a stray malformed-filename artifact from a prior git status (`config/README.md` with garbled encoding) sitting in git's staged deletions, likely from the same mobile/GitHub workflow confusion.
-
-**Action needed before more repo work piles up:** decide whether to delete the nested `Sentinel-/Sentinel-/` folder and get `git status` back to clean, mapped 1:1 against GitHub. Flagging this so it isn't silently duplicated or committed into history by accident. This should be resolved deliberately (with confirmation) rather than assumed away.
+An earlier pass of this doc flagged a `Sentinel-/Sentinel-/` nested-clone folder and a garbled `config/README.md` artifact. Both are gone as of this pass — `git status` is clean except for the new, not-yet-committed `src/detector/` work. No action needed here anymore.
 
 ## Fall detection definition (target behavior)
 
@@ -146,7 +150,7 @@ Each state (`idle`, `pre-event baseline`, `candidate event`, `verification windo
 
 These aren't settled yet — they're gaps in the plan above that should get explicit answers (or explicit "yes, assume this for now") before they get quietly baked into the firmware.
 
-- **Dev/test toolchain.** "Software-first" implies simulating sensor input before touching real hardware, but nothing pins down where that lives. Likely approach: prototype the state machine + scoring logic in Python first (fast iteration, easy to plot/inspect against synthetic scenarios), then port validated logic to the ESP32-S3 firmware. Firmware language/framework (Arduino, PlatformIO, ESP-IDF) is also still undecided.
+- **Dev/test toolchain — answered.** Python + pytest, living in `src/detector/`. State machine, parser, and fusion logic are prototyped there against synthetic scenarios; validated logic gets ported to firmware later. Firmware language/framework (Arduino, PlatformIO, ESP-IDF) is still undecided.
 - **What "privacy-first" means in practice.** The mic is the sensor most likely to raise privacy concerns. Working assumption: audio is processed for features only (impulse/energy) and never recorded or stored as raw audio, with no cloud upload. This is an assumption based on framing so far, not a confirmed requirement — should be confirmed explicitly.
 - **Alert destination.** The alert layer plan (serial log → LED/buzzer → later network/app) doesn't say who receives a confirmed-fall alert — you, a caregiver's phone, a monitoring service? This shapes what the alert layer eventually needs to do.
 - **Occupant/environment assumptions.** LD2410C radar will pick up pets and can't inherently identify "who" triggered an event. Current working assumption: single adult occupant, single room. Worth stating explicitly rather than discovering it as a limitation later.
@@ -154,10 +158,13 @@ These aren't settled yet — they're gaps in the plan above that should get expl
 
 ## Recommended next steps
 
-1. Resolve the accidental nested-clone folder (`Sentinel-/Sentinel-/`) and the garbled `config/README.md` artifact so git status is clean and matches GitHub.
-2. Start real code: sensor input contract for LD2410C + INMP441 (even mocked/simulated data first).
-3. Implement the fall-detection state machine skeleton with weighted scoring per state.
-4. Build the signal parser and fusion logic described above.
-5. Build a small set of replayable test scenarios (normal motion, sit-down, drop, fall, recovery, non-recovery) to validate logic before hardware arrives.
-6. Keep `config/hardware/` and `config/app/` as the home for threshold values and settings once those exist, per the structure already defined in their README files.
-7. Get explicit answers to the open questions/assumptions above — especially the toolchain choice, since it determines how step 2-5 above actually get built.
+1. ~~Resolve the nested-clone folder / garbled `config/README.md`~~ — done.
+2. ~~Sensor input contract for LD2410C + INMP441~~ — done (`events.py`, mocked data only).
+3. ~~Fall-detection state machine skeleton with weighted scoring~~ — done (`state_machine.py`).
+4. ~~Signal parser and fusion logic~~ — done (`parser.py`, `fusion.py`).
+5. ~~Replayable synthetic test scenarios~~ — done (`tests/scenarios.py`, 5 scenarios, 6 test cases, all passing).
+6. **Commit the new `src/detector/` work** — it's currently untracked in git, nothing above is saved to history yet.
+7. Add scenarios that stress the edges of the current thresholds (borderline energy values, an impulse just outside the alignment window, back-to-back candidate events) to sanity-check the weights aren't accidentally brittle.
+8. Get explicit answers to the remaining open questions below (alert destination, false-positive vs. missed-fall philosophy, occupant assumptions) before they get quietly baked further into scoring.
+9. Once satisfied with synthetic coverage, start on real LD2410C/INMP441 byte-level parsing (replacing the mocked `RadarFrame`/`AudioFrame` construction with actual UART/I2S decoding) — this is the bridge from `src/detector/` to real firmware.
+10. Keep `config/hardware/` and `config/app/` as the home for threshold values and settings once the firmware port starts, per the structure already defined in their README files.
