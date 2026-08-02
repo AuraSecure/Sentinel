@@ -14,10 +14,11 @@ from .thresholds import Thresholds
 @dataclass
 class FusionContext:
     """Rolling state fusion needs across ticks to judge sensor time-alignment
-    and how long stillness has persisted."""
+    and how long stillness/repeated-impulse evidence has been accruing."""
 
     last_motion_drop_ts: int | None = None
     consecutive_still_ticks: int = 0
+    audio_impulse_count: int = 0
 
 
 def is_candidate_trigger(radar: RadarClue, audio: AudioClue) -> bool:
@@ -34,7 +35,13 @@ def score_tick(radar: RadarClue, audio: AudioClue, ctx: FusionContext, threshold
         ctx.last_motion_drop_ts = radar.timestamp_ms
 
     if audio.impulse:
-        delta += t.weight_audio_impulse
+        # Base impulse weight caps out after a few occurrences so sustained,
+        # radar-uncorroborated noise (a TV, an alarm, music) can never alone
+        # add up to a confirm -- only a genuine aligned hit, or corroborating
+        # radar evidence, can close the gap from here.
+        ctx.audio_impulse_count += 1
+        if ctx.audio_impulse_count <= t.audio_impulse_cap:
+            delta += t.weight_audio_impulse
         if ctx.last_motion_drop_ts is not None and audio.timestamp_ms - ctx.last_motion_drop_ts <= t.alignment_window_ms:
             delta += t.weight_aligned_bonus
 

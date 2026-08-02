@@ -27,6 +27,10 @@ class Thresholds:
     weight_aligned_bonus: float = 2.0
     weight_motion_resumed: float = -4.0
 
+    # Caps how many times a bare (unaligned) audio impulse can add its base
+    # weight within one verification window -- see fusion.score_tick.
+    audio_impulse_cap: int = 2
+
     # Stillness-with-presence accrues slowly and caps out, so a long, ordinary
     # bout of sitting still never outscores a real fall on its own -- the cap
     # keeps this a corroborating signal, not the deciding one.
